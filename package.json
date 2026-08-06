@@ -1,0 +1,23 @@
+{
+  "name": "signal-sentinel",
+  "version": "0.1.0",
+  "description": "Competitor-change intelligence on webcmd. Watches real sites, detects structural changes, writes plain-language briefs, and self-heals its command library.",
+  "type": "module",
+  "bin": {
+    "sentinel": "bin/sentinel.js"
+  },
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "webcmd",
+    "browser-agent",
+    "competitor-intelligence",
+    "monitoring",
+    "cli"
+  ],
+  "license": "MIT"
+}

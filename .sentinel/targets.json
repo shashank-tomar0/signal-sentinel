@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "targets": [
+    {
+      "name": "crypto-top",
+      "site": "coingecko",
+      "command": "top",
+      "args": [],
+      "watch": [
+        "price",
+        "marketCap"
+      ],
+      "keyField": "symbol",
+      "cadence": 1440,
+      "addedAt": "2026-08-05T18:56:26.629Z"
+    },
+    {
+      "name": "ph-today",
+      "site": "producthunt",
+      "command": "today",
+      "args": [],
+      "watch": [],
+      "keyField": "name",
+      "cadence": 1440,
+      "addedAt": "2026-08-06T04:35:33.959Z"
+    },
+    {
+      "name": "gh-trending",
+      "site": "github-trending",
+      "command": "repos",
+      "args": [],
+      "watch": [],
+      "keyField": "repo",
+      "cadence": 1440,
+      "addedAt": "2026-08-06T04:35:34.229Z"
+    }
+  ]
+}

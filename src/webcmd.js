@@ -1,0 +1,84 @@
+// webcmd.js — the hands.
+// Thin, robust wrapper around the webcmd CLI. All browser/command execution
+// funnels through here so the rest of Sentinel never touches child_process.
+//
+// Design rules:
+//  - Prefer structured JSON output (`-f json`) everywhere; that is the contract
+//    between webcmd and everything we build on top.
+//  - A command failure is NOT a thrown exception. We return { ok:false, error }.
+//    Sentinel's repair loop keys off these structured failures.
+//  - Never assume webcmd is on PATH with a given name: win32 shims are .cmd.
+
+import { execFile } from "node:child_process";
+
+// Windows cannot execFile a .cmd shim directly (spawn EINVAL); route through cmd /c.
+const WEBCMD_CMD = process.platform === "win32" ? "cmd" : "webcmd";
+const WEBCMD_ARGS_BASE = process.platform === "win32" ? ["/c", "webcmd.cmd"] : [];
+
+function run(args, { timeout = 120_000, maxBuffer = 32 * 1024 * 1024 } = {}) {
+  const fullArgs = [...WEBCMD_ARGS_BASE, ...args];
+  return new Promise((resolve) => {
+    execFile(
+      WEBCMD_CMD,
+      fullArgs,
+      { timeout, maxBuffer, windowsHide: true, encoding: "utf8" },
+      (err, stdout, stderr) => {
+        if (err) {
+          // Timeouts and nonzero exits are recoverable states, not crashes.
+          const detail = (stderr || "").trim().slice(0, 400) || (stdout || "").trim().slice(0, 400);
+          resolve({ ok: false, error: `webcmd ${args[0] ?? ""} failed: ${err.message}${detail ? ` — ${detail}` : ""}` });
+          return;
+        }
+        resolve({ ok: true, output: stdout });
+      },
+    );
+  });
+}
+
+// Extract JSON from stdout even when webcmd mixes in log lines or banners.
+// We scan for the first top-level array/object instead of trusting the whole stream.
+export function extractJson(text) {
+  const trimmed = text.trim();
+  if (trimmed.startsWith("[") || trimmed.startsWith("{")) return JSON.parse(trimmed);
+  const arrIdx = trimmed.indexOf("[");
+  const objIdx = trimmed.indexOf("{");
+  const start = arrIdx === -1 ? objIdx : objIdx === -1 ? arrIdx : Math.min(arrIdx, objIdx);
+  if (start === -1) throw new Error(`no JSON found in webcmd output: ${trimmed.slice(0, 200)}`);
+  return JSON.parse(trimmed.slice(start));
+}
+
+/** webcmd list -f json — the "source of truth". */
+export async function listCommands() {
+  const res = await run(["list", "-f", "json"]);
+  if (!res.ok) return res;
+  try {
+    return { ok: true, commands: extractJson(res.output) };
+  } catch (e) {
+    return { ok: false, error: `could not parse webcmd list output: ${e.message}` };
+  }
+}
+
+/**
+ * Run a single webcmd command and return parsed rows.
+ * @param {string} site  e.g. "coingecko"
+ * @param {string} cmd   e.g. "top"
+ * @param {string[]} args positional/flag args, e.g. ["--limit", "10"]
+ * @param {string} format "json" (default) | "table" | "yaml" | "md" | "csv"
+ */
+export async function runCommand(site, cmd, args = [], format = "json") {
+  const res = await run([site, cmd, ...args, "-f", format]);
+  if (!res.ok) return res;
+  try {
+    const data = extractJson(res.output);
+    return { ok: true, rows: Array.isArray(data) ? data : [data] };
+  } catch (e) {
+    return { ok: false, error: `command ${site} ${cmd} returned unparseable output: ${e.message}` };
+  }
+}
+
+/** Verify every command a target depends on, so the repair loop can detect drift. */
+export async function checkCommand(site, cmd, args = []) {
+  const res = await runCommand(site, cmd, args, "json");
+  if (!res.ok) return { ...res, healthy: false };
+  return { ...res, healthy: true };
+}
