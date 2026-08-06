@@ -57,6 +57,17 @@ SignalSentinel is different:
 
 ---
 
+## Diagrams (Excalidraw)
+
+Editable whiteboard diagrams (handwritten Virgil font) — open in [excalidraw.com](https://excalidraw.com) or the desktop app:
+
+| Diagram | What it shows |
+|---|---|
+| [demo-flow.excalidraw](demo-flow.excalidraw) | The 5-stage live demo arc: Library → Reuse → Watch & Signals → Intelligence → Self-heal, with every command and what happens under the hood |
+| [commands-reference.excalidraw](commands-reference.excalidraw) | Full command reference grouped into Setup & Targets / Run & Watch / Intelligence / Health / Automation, plus an "under the hood" legend |
+
+---
+
 ## Quick start
 
 ```bash
