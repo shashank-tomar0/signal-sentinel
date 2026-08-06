@@ -8,9 +8,7 @@
 
 ## Why this exists
 
-Competitor intelligence is a real, painful, people-pay-money-for-it problem (the previous webcmd hackathon winner built exactly this). But most "monitors" are just price tickers or noisy page diffs.
-
-SignalSentinel is different:
+Competitor intelligence is a real, painful problem that people pay for (the previous webcmd hackathon winner built exactly this). But most "monitors" are just price tickers or noisy page diffs.
 
 | What others do | What Sentinel does |
 |---|---|
@@ -21,13 +19,13 @@ SignalSentinel is different:
 
 ---
 
-## The architecture (what makes it possible)
+## How it works (the architecture)
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │  Sentinel CLI — the thin product shell                           │
 │  watch · diff · brief · repair · daemon · status                 │
-│                                                                    │
+│                                                                   │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌────────────────┐   │
 │  │ Diff Engine     │  │ Signal Class-   │  │ Brief Generator│   │
 │  │ (schema-aware)  │  │ ifier           │  │ (Groq LLM)     │   │
@@ -57,20 +55,18 @@ SignalSentinel is different:
 
 ---
 
-## Diagrams (Excalidraw)
-
-Editable whiteboard diagrams (handwritten Virgil font) — open in [excalidraw.com](https://excalidraw.com) or the desktop app:
+## Visual overview
 
 | Diagram | What it shows |
 |---|---|
-| [demo-flow.excalidraw](demo-flow.excalidraw) | The 5-stage live demo arc: Library → Reuse → Watch & Signals → Intelligence → Self-heal, with every command and what happens under the hood |
-| [commands-reference.excalidraw](commands-reference.excalidraw) | Full command reference grouped into Setup & Targets / Run & Watch / Intelligence / Health / Automation, plus an "under the hood" legend |
-
-### Rendered previews
+| **Demo flow** | The 5-stage live demo arc: Library → Reuse → Watch & Signals → Intelligence → Self-heal, with every command and what happens under the hood |
+| **User flow** | How you actually use Sentinel: setup → baseline → watch loop → signal decision → brief/act → self-heal |
 
 ![Demo flow](demo-flow.png)
 
-![Commands reference](commands-reference.png)
+![User flow](commands-reference.png)
+
+*Both diagrams are editable Excalidraw sources (Virgil handwritten font) — open in [excalidraw.com](https://excalidraw.com) to edit.*
 
 ---
 
@@ -86,15 +82,18 @@ git clone https://github.com/shashank-tomar0/signal-sentinel
 cd signal-sentinel
 npm install
 
-# 3. Add your Groq key for AI briefs (or use fallback)
+# 3. Add your Groq key for AI briefs (or use deterministic fallback)
 cp .env.example .env
 # edit .env → GROQ_API_KEY=your_key
 
 # 4. Run
 npm link                      # exposes `sentinel` on PATH
 sentinel init
+```
 
-# Register a real competitor target (example: a SaaS pricing page)
+### Register a real target
+
+```bash
 # Everything after `--` is passed to webcmd as positional args (no quoting pain)
 sentinel target add acme-pricing \
   --site coingecko \
@@ -102,20 +101,24 @@ sentinel target add acme-pricing \
   --watch "price,marketCap" \
   --key symbol \
   -- --limit 10
+```
 
-# First run = baseline
+### The core loop
+
+```bash
+# First run = establish baseline
 sentinel watch acme-pricing
 
-# Second run = diff vs baseline
+# Subsequent runs = diff vs baseline
 sentinel watch acme-pricing
 
-# Get the narrative brief
+# Get the AI narrative brief
 sentinel brief acme-pricing
 
 # Or view the last persisted brief from the daemon
 sentinel brief acme-pricing --last
 
-# Run continuously (daemon)
+# Run continuously
 sentinel daemon --force
 ```
 
@@ -136,20 +139,20 @@ sentinel daemon --force
 
 ---
 
-## Commands
+## Commands reference
 
 | Command | Purpose |
 |---|---|
 | `sentinel init` | Initialize config |
 | `sentinel target list` | List registered targets |
-| `sentinel target add <name> --site <s> --command <c> [--args "..."] [--watch "a,b"] [--key <field>]` | Register a real surface |
+| `sentinel target add <name> --site <s> --command <c> [-- <args>]` | Register a real surface (args after `--`) |
 | `sentinel target rm <name>` | Remove a target |
 | `sentinel watch <name> \| all` | Run command, diff vs baseline, update baseline |
 | `sentinel diff <name>` | Show last diff without updating baseline |
 | `sentinel brief <name> [--last]` | Generate AI brief, or show last persisted |
-| `sentinel status` | Library health: commands, failures, repairs |
+| `sentinel status` | Library health: clean / changed / broken |
 | `sentinel history <name>` | Recent run history |
-| `sentinel repair <name>` | Diagnose broken command → autonomous repair → manual protocol |
+| `sentinel repair <name>` | Diagnose → autonomous repair → manual protocol |
 | `sentinel daemon [--force]` | Continuous watch loop (scheduler) |
 | `sentinel run` | Force-run all due targets once |
 | `sentinel demo [--target <name>]` | Run the full 5-beat live demo arc (no input) |
@@ -165,14 +168,15 @@ When a watched site changes its structure, the command breaks. Sentinel:
 2. **Attempts autonomous repair** — re-verify → re-explore (`webcmd browser`) → rebuild adapter (`adapter-author`/`autofix`) → re-verify
 3. **Succeeds silently** if the adapter heals itself
 4. **Escalates to human** with an exact re-education protocol if it can't:
-   ```
-   REPAIR PROTOCOL (automate with Claude Code + webcmd skills):
-     1. webcmd browser <site>          — re-explore the live surface
-     2. webcmd-sitemap-author           — refresh sitemap memory
-     3. webcmd-adapter-author           — rebuild the <command> command
-     4. webcmd verify <site> <command>  — confirm schema
-     5. sentinel watch <name>           — re-baseline
-   ```
+
+```
+REPAIR PROTOCOL (automate with Claude Code + webcmd skills):
+  1. webcmd browser <site>          — re-explore the live surface
+  2. webcmd-sitemap-author           — refresh sitemap memory
+  3. webcmd-adapter-author           — rebuild the <command> command
+  4. webcmd verify <site> <command>  — confirm schema
+  5. sentinel watch <name>           — re-baseline
+```
 
 This is the **"compounding asset"** — a library of learned commands that keeps itself alive.
 
