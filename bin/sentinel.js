@@ -17,7 +17,7 @@ import {
   appendHistory,
   readHistory,
 } from "../src/state.js";
-import { runCommand } from "../src/webcmd.js";
+import { runCommand, checkCommand, listCommands } from "../src/webcmd.js";
 import { diffRows, classify } from "../src/diff.js";
 
 const HELP = `
@@ -34,6 +34,7 @@ Usage:
   sentinel diff <name>             Show last diff without updating baseline
   sentinel status                  Library health: commands, failures, repairs
   sentinel history <name>          Show recent run history
+  sentinel repair <name>           Diagnose a broken command + emit repair protocol
   sentinel state                   Show sentinel dir + config path
 
 Options:
@@ -232,6 +233,43 @@ async function cmdStatus() {
   }
 }
 
+// The self-healing beat. A broken webcmd command (site changed) is the repair
+// trigger. Sentinel confirms breakage, then tells the orchestrator (Claude Code)
+// exactly how to re-explore and repair the adapter — the technical-depth story.
+async function cmdRepair(args) {
+  const name = args[0];
+  if (!name) return err("usage: sentinel repair <name>");
+  const target = getTarget(name);
+  if (!target) return err(`unknown target "${name}"`);
+
+  log(`⟳ diagnosing "${name}": ${target.site} ${target.command}`);
+  const res = await checkCommand(target.site, target.command, target.args || []);
+  if (res.ok && res.healthy) {
+    log(`  ✓ command is healthy — nothing to repair`);
+    return;
+  }
+  log(`  ✗ command is BROKEN: ${res.error ?? "unknown error"}`);
+  log(`  ⟶ root cause: the target site likely changed its structure.`);
+
+  // Emit the exact re-education step for the orchestrator.
+  log("");
+  log(`  REPAIR PROTOCOL (automate with Claude Code + webcmd skills):`);
+  log(`    1. webcmd browser ${target.site}  — re-explore the live surface`);
+  log(`    2. webcmd-sitemap-author         — refresh sitemap memory`);
+  log(`    3. webcmd-adapter-author          — rebuild the ${target.command} command`);
+  log(`    4. webcmd verify ${target.site} ${target.command}  — confirm schema`);
+  log(`    5. sentinel watch ${name}         — re-baseline`);
+  log("  (A full autonomous repair can be delegated as a Claude Code task —");
+  log("   give it the target, the failing command, and this protocol.)");
+  appendHistory(name, {
+    capturedAt: now(),
+    ok: false,
+    healthy: false,
+    repairRequested: true,
+    error: res.error,
+  });
+}
+
 async function cmdHistory(args) {
   const name = args[0];
   if (!name) return err("usage: sentinel history <name>");
@@ -274,6 +312,7 @@ async function main() {
       case "diff": return await cmdDiff(rest[0]);
       case "status": return await cmdStatus();
       case "history": return await cmdHistory(rest);
+      case "repair": return await cmdRepair(rest);
       case "state": return cmdState();
       default: err(`unknown command "${cmd}"`); log(HELP); process.exit(1);
     }
