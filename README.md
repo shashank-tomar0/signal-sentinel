@@ -78,12 +78,13 @@ npm link                      # exposes `sentinel` on PATH
 sentinel init
 
 # Register a real competitor target (example: a SaaS pricing page)
+# Everything after `--` is passed to webcmd as positional args (no quoting pain)
 sentinel target add acme-pricing \
   --site coingecko \
   --command top \
-  --args "--limit 10" \
   --watch "price,marketCap" \
-  --key symbol
+  --key symbol \
+  -- --limit 10
 
 # First run = baseline
 sentinel watch acme-pricing
@@ -107,9 +108,12 @@ sentinel daemon --force
 
 | Target | Command | What it watches | Signal example |
 |---|---|---|---|
-| `ph-today` | `producthunt today` | Today's launches, rank moves | "Keystroke jumped to #1" |
+| `ph-today` | `producthunt today` | Today's launches, rank moves | "Annotate jumped to #1" |
 | `gh-trending` | `github-trending repos` | Trending repos by language | "cloudflare/computer forks +6" |
 | `crypto-top` | `coingecko top` | Top-10 coin prices/market cap | "BTC market cap -$3M (noise suppressed)" |
+| `webcmd-npm` | `npm package @agentrhq/webcmd` | webcmd's own npm version | "0.8.x → 0.9.0 published" |
+| `hn-webcmd` | `hackernews search webcmd` | HN buzz about webcmd | "New story +3 points" |
+| `pypi-requests` | `pypi package requests` | The `requests` lib on PyPI | "version 2.32.4 → 2.33.0" |
 
 > These run **live** against real public APIs. No mocks. The briefs above are real Groq outputs from the last run.
 
@@ -131,6 +135,7 @@ sentinel daemon --force
 | `sentinel repair <name>` | Diagnose broken command → autonomous repair → manual protocol |
 | `sentinel daemon [--force]` | Continuous watch loop (scheduler) |
 | `sentinel run` | Force-run all due targets once |
+| `sentinel demo [--target <name>]` | Run the full 5-beat live demo arc (no input) |
 | `sentinel state` | Show sentinel dir + config path |
 
 ---

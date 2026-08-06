@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+.sentinel/
+test/
+demo-transcript.txt
+DEMO-SCRIPT.md
+*.tgz
