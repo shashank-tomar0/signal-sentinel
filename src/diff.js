@@ -102,6 +102,11 @@ export function classify(diffResult, baselineCount, currentCount) {
   const reasons = [];
   let severity = "none";
 
+  // Any modified rows that don't reach the material threshold are still a signal.
+  if (diffResult.modified.length && severity === "none") {
+    severity = "minor";
+  }
+
   if (diffResult.added.length) {
     // New entries are usually the strongest signal (new tier, new product, new listing).
     severity = "critical";
@@ -128,6 +133,7 @@ export function classify(diffResult, baselineCount, currentCount) {
     }
   }
 
+  // A clean path: nothing added/removed/major, but rows moved slightly = minor.
   const label =
     severity === "critical"
       ? "critical change detected"

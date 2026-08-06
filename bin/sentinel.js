@@ -19,6 +19,7 @@ import {
 } from "../src/state.js";
 import { runCommand, checkCommand, listCommands } from "../src/webcmd.js";
 import { diffRows, classify } from "../src/diff.js";
+import { generateBrief, fallbackBrief } from "../src/brief.js";
 
 const HELP = `
 sentinel — competitor-change intelligence on webcmd
@@ -34,6 +35,7 @@ Usage:
   sentinel diff <name>             Show last diff without updating baseline
   sentinel status                  Library health: commands, failures, repairs
   sentinel history <name>          Show recent run history
+  sentinel brief <name>            Generate a plain-language signal brief
   sentinel repair <name>           Diagnose a broken command + emit repair protocol
   sentinel state                   Show sentinel dir + config path
 
@@ -281,6 +283,35 @@ async function cmdHistory(args) {
   }
 }
 
+async function cmdBrief(args) {
+  const name = args[0];
+  if (!name) return err("usage: sentinel brief <name>");
+  const target = getTarget(name);
+  if (!target) return err(`unknown target "${name}"`);
+
+  const history = readHistory(name, { limit: 20 });
+  const latest = history[history.length - 1];
+  if (!latest) {
+    log(`no runs yet for "${name}" — run sentinel watch ${name} first`);
+    return;
+  }
+  // Reuse the most recent signal if any, else a "no material change" brief.
+  const signal = latest.changed
+    ? { label: "change detected", severity: latest.severity || "major", reasons: latest.summary || [] }
+    : { label: "no material change", severity: "none", reasons: [] };
+
+  log(`generating brief for "${name}" (severity: ${signal.severity})…`);
+  const brief = await generateBrief({
+    targetName: name,
+    site: target.site,
+    command: target.command,
+    signal,
+    capturedAt: latest.capturedAt,
+    history,
+  });
+  log("\n" + brief + "\n");
+}
+
 function cmdState() {
   log(`sentinel dir: ${SENTINEL_DIR}`);
   log(`config:       ${SENTINEL_DIR}/targets.json`);
@@ -312,6 +343,7 @@ async function main() {
       case "diff": return await cmdDiff(rest[0]);
       case "status": return await cmdStatus();
       case "history": return await cmdHistory(rest);
+      case "brief": return await cmdBrief(rest);
       case "repair": return await cmdRepair(rest);
       case "state": return cmdState();
       default: err(`unknown command "${cmd}"`); log(HELP); process.exit(1);

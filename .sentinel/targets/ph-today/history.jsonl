@@ -1,3 +1,0 @@
-{"capturedAt":"2026-08-06T04:35:51.798Z","ok":true,"healthy":true,"rowsCount":8,"changed":false,"severity":"none","baselineSeeded":true,"summary":["baseline established (8 rows)"]}
-{"capturedAt":"2026-08-06T04:36:04.952Z","ok":true,"healthy":true,"rowsCount":8,"changed":false,"severity":"none","summary":[],"baselineUpdated":true}
-{"capturedAt":"2026-08-06T04:37:57.888Z","ok":true,"healthy":true,"rowsCount":8,"rawChanged":true,"changed":false,"severity":"none","summary":["Kiro Crew rank: 1 -> 2","Cloudflare Wallets rank: 2 -> 5","BackEngine MCP rank: 5 -> 6","X Money rank: 6 -> 7","Hansel rank: 7 -> 8","Wispr Flow Notetaker rank: 8 -> 1"],"baselineUpdated":true}

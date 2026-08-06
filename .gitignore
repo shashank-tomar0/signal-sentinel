@@ -3,3 +3,6 @@ node_modules/
 *.log
 .DS_Store
 *.local
+
+# Derived, machine-local demo state (baselines/history) — not source.
+.sentinel/
