@@ -21,37 +21,37 @@ Competitor intelligence is a real, painful problem that people pay for (the prev
 
 ## How it works (the architecture)
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│  Sentinel CLI — the thin product shell                           │
-│  watch · diff · brief · repair · daemon · status                 │
-│                                                                   │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌────────────────┐   │
-│  │ Diff Engine     │  │ Signal Class-   │  │ Brief Generator│   │
-│  │ (schema-aware)  │  │ ifier           │  │ (Groq LLM)     │   │
-│  └────────┬────────┘  └────────┬────────┘  └───────┬────────┘   │
-└───────────┼────────────────────┼────────────────────┼────────────┘
-            │                    │                    │
-┌───────────▼────────────────────▼────────────────────▼────────────┐
-│  WEBCMD RUNTIME (@agentrhq/webcmd) — the hands                  │
-│  · Explore once with browser, capture sitemap memory            │
-│  · Compile to deterministic `webcmd <site> <cmd>` (PUBLIC/INTERCEPT/UI) │
-│  · Reuse fast commands (sub-200ms, ~500 tokens)                 │
-│  · Autofix — self-heal when sites change                        │
-└───────┬────────────────────────────────────────────────┬────────┘
-        │ reads/writes                                   │
-┌───────▼───────────────┐            ┌───────────────────▼──────────┐
-│  GIT STATE STORE      │            │  TARGET REGISTRY             │
-│  .sentinel/targets/   │            │  sites + fields to watch     │
-│   baseline.json       │            │  (tiers, prices, trials,     │
-│   history.jsonl       │            │   features, CTAs, copy)      │
-│   brief.md            │            └──────────────────────────────┘
-│  = the compounding    │
-│    asset              │
-└───────────────────────┘
+```mermaid
+flowchart LR
+    subgraph CLI["Sentinel CLI — the thin product shell"]
+        direction LR
+        CMD[watch · diff · brief · repair · daemon · status]
+        DE[Diff Engine<br/>schema-aware]
+        SC[Signal Classifier]
+        BG[Brief Generator<br/>Groq LLM]
+    end
+
+    subgraph WEBCMD["webcmd runtime — @agentrhq/webcmd"]
+        direction TB
+        EXPLORE[Explore once<br/>browser + sitemap]
+        COMPILE[Compile to<br/>webcmd &#60;site&#62; &#60;cmd&#62;]
+        REUSE[Reuse fast commands<br/>sub-second · ~500 tokens]
+        AUTOFIX[Autofix<br/>self-heal when sites change]
+    end
+
+    subgraph STATE["State — git-tracked"]
+        TARGETS[Target Registry<br/>sites + fields to watch]
+        SNAP[.sentinel/targets/<br/>baseline.json · history.jsonl · brief.md]
+    end
+
+    WEBCMD -->|reads/writes| STATE
+    STATE --> CLI
+    CLI -->|calls| WEBCMD
 ```
 
-**Key insight:** You are *not* building a browser agent. webcmd does the hard part (explore → compile → repair). Sentinel is the **thin orchestration layer** that points that capability at a real business problem and delivers a human-readable brief.
+**Key insight:** You are *not* building a browser agent. webcmd does the actual work — explore, compile, reuse, and self-heal. Sentinel (the CLI) is the **thin orchestration layer** that points that capability at a real business problem and turns raw signals into a human-readable brief.
+
+> `demo-flow.png`, `commands-reference.png`, and the `.excalidraw` sources give editable, hand-drawn versions. This Mermaid block renders live inline on GitHub — update the code, the diagram updates.
 
 ---
 
@@ -62,9 +62,9 @@ Competitor intelligence is a real, painful problem that people pay for (the prev
 | **Demo flow** | The 5-stage live demo arc: Library → Reuse → Watch & Signals → Intelligence → Self-heal, with every command and what happens under the hood |
 | **User flow** | How you actually use Sentinel: setup → baseline → watch loop → signal decision → brief/act → self-heal |
 
-![Demo flow](demo-flow.png)
+<img src="demo-flow.png" alt="Demo flow" width="700"/>
 
-![User flow](commands-reference.png)
+<img src="commands-reference.png" alt="User flow" width="700"/>
 
 *Both diagrams are editable Excalidraw sources (Virgil handwritten font) — open in [excalidraw.com](https://excalidraw.com) to edit.*
 
