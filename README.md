@@ -41,8 +41,9 @@ That's it — `sentinel` is on your PATH. Works on **Node 20+** on macOS, Linux,
 ## Quick start
 
 ```bash
-# 1. Set your Groq key for AI briefs (optional, deterministic fallback otherwise)
-cp .env.example .env        # then edit .env → GROQ_API_KEY=your_key
+# 1. Set your Groq key for AI briefs (optional — a deterministic fallback works without it)
+#    Create a .env in the directory where you'll run sentinel:
+echo "GROQ_API_KEY=your_key_here" > .env
 
 # 2. Create config
 sentinel init
@@ -67,6 +68,32 @@ sentinel brief acme-pricing
 # 7. Or run continuously
 sentinel daemon --force
 ```
+
+---
+
+## What you get
+
+A plain-language brief, generated in real time by Groq from the actual diff — this is a real output:
+
+```markdown
+# ph-today — brief (2026-08-06)
+
+**1. What changed**
+Product Hunt's daily rankings have shifted, with Brandfetch MCP jumping to
+1st place and Cloudflare OS dropping to 2nd. Annotate, UCP Radar, and Aveiro
+also fell, while Muse Code rose to 3rd.
+
+**2. What it likely means for the competitor/market**
+This suggests shifting user interest or voting patterns. Brandfetch MCP's
+sudden rise may indicate a successful launch or marketing campaign.
+
+**3. Suggested attention or next step**
+Monitor Brandfetch MCP's product and marketing strategy. Analyze user
+feedback to identify improvement areas for our own product, and consider
+adjusting our launch strategy to stay competitive.
+```
+
+No browser rendering, no screenshot reasoning — just a deterministic command returning clean JSON, diffed against a baseline, turned into insight.
 
 ---
 
@@ -180,8 +207,18 @@ These run **live** against real public APIs — no mocks.
 ## Requirements
 
 - **Node** ≥ 20
-- **Groq API key** (optional — deterministic fallback works without it)
-- **[webcmd](https://www.npmjs.com/package/@agentrhq/webcmd)** (the browser runtime)
+- **[webcmd](https://www.npmjs.com/package/@agentrhq/webcmd)** — `npm install -g @agentrhq/webcmd` (the browser runtime Sentinel shells out to)
+- **Groq API key** (optional — a deterministic fallback brief works without it)
+
+---
+
+## One-command demo
+
+```bash
+sentinel demo          # runs the full 5-beat live arc on a real target
+```
+
+`sentinel demo` walks through the whole story automatically — library health, live diff, AI brief, self-heal — on real data. Great for demos and recording.
 
 ---
 
