@@ -82,3 +82,43 @@ export async function checkCommand(site, cmd, args = []) {
   if (!res.ok) return { ...res, healthy: false };
   return { ...res, healthy: true };
 }
+
+/**
+ * Autonomous repair via webcmd's autofix adapter lifecycle.
+ * webcmd ships a webcmd-autofix skill; this drives the CLI surface so the
+ * orchestrator (Claude Code / a scheduling agent) can re-learn a changed site
+ * without manual intervention. Returns the result of the verification after
+ * the re-exploration attempt.
+ */
+export async function repairCommand(site, cmd, args = [], { attempts = 2 } = {}) {
+  const outcome = { site, cmd, repairs: [] };
+  for (let i = 0; i < attempts; i++) {
+    // 1) Re-verify first (the site may have healed itself or been transient).
+    const check = await checkCommand(site, cmd, args);
+    if (check.ok && check.healthy) {
+      outcome.healthy = true;
+      outcome.repaired = i > 0;
+      return outcome;
+    }
+    // 2) Tell the agent to re-explore the live surface and rebuild the adapter.
+    //    This is a thin CLI signal; the actual re-exploration is delegated to
+    //    the orchestrator via webcmd's autofix skill.
+    outcome.repairs.push({
+      attempt: i + 1,
+      action: "re-explore via webcmd browser + adapter-author/autofix",
+      error: check.error,
+    });
+    // 3) Refresh the sitemap/adapter memory then retry verification.
+    await run(["adapter", "eject", site], { timeout: 30_000 }).catch(() => {});
+    await run(["adapter", "reset", site], { timeout: 30_000 }).catch(() => {});
+    const retry = await checkCommand(site, cmd, args);
+    if (retry.ok && retry.healthy) {
+      outcome.healthy = true;
+      outcome.repaired = true;
+      return outcome;
+    }
+  }
+  outcome.healthy = false;
+  outcome.error = `repair failed after ${attempts} attempts for ${site} ${cmd}`;
+  return outcome;
+}

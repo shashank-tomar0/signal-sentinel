@@ -17,9 +17,10 @@ import {
   appendHistory,
   readHistory,
 } from "../src/state.js";
-import { runCommand, checkCommand, listCommands } from "../src/webcmd.js";
+import { runCommand, checkCommand, listCommands, repairCommand } from "../src/webcmd.js";
 import { diffRows, classify } from "../src/diff.js";
 import { generateBrief, fallbackBrief } from "../src/brief.js";
+import { daemon as runDaemon, runDueTargets } from "../src/scheduler.js";
 
 const HELP = `
 sentinel — competitor-change intelligence on webcmd
@@ -37,6 +38,8 @@ Usage:
   sentinel history <name>          Show recent run history
   sentinel brief <name>            Generate a plain-language signal brief
   sentinel repair <name>           Diagnose a broken command + emit repair protocol
+  sentinel daemon [--force]       Run continuous watch loop (scheduler)
+  sentinel run                    Force-run all due targets once
   sentinel state                   Show sentinel dir + config path
 
 Options:
@@ -252,6 +255,23 @@ async function cmdRepair(args) {
   }
   log(`  ✗ command is BROKEN: ${res.error ?? "unknown error"}`);
   log(`  ⟶ root cause: the target site likely changed its structure.`);
+  log(`  ⟶ attempting AUTONOMOUS repair (webcmd autofix lifecycle)…`);
+
+  // Autonomous path: attempt to re-learn + rebuild the adapter.
+  const auto = await repairCommand(target.site, target.command, target.args || []);
+  if (auto.healthy) {
+    log(`  ✓ AUTONOMOUS REPAIR SUCCEEDED (${auto.repaired ? "adapter rebuilt" : "transient recovery"})`);
+    appendHistory(name, {
+      capturedAt: now(),
+      ok: true,
+      healthy: true,
+      autonomousRepair: true,
+      repaired: auto.repaired,
+      summary: ["autonomous repair succeeded"],
+    });
+    return;
+  }
+  log(`  ✗ autonomous repair did not fully recover — falling back to manual protocol:`);
 
   // Emit the exact re-education step for the orchestrator.
   log("");
@@ -312,6 +332,17 @@ async function cmdBrief(args) {
   log("\n" + brief + "\n");
 }
 
+async function cmdDaemon(args) {
+  const force = args.includes("--force");
+  log(`starting daemon (force=${force}) — Ctrl-C to stop`);
+  await runDaemon({ force });
+}
+
+async function cmdRunDue() {
+  const results = await runDueTargets({ force: true });
+  log(`ran ${results.length} targets, ${results.filter((r) => r.changed).length} signals`);
+}
+
 function cmdState() {
   log(`sentinel dir: ${SENTINEL_DIR}`);
   log(`config:       ${SENTINEL_DIR}/targets.json`);
@@ -345,6 +376,8 @@ async function main() {
       case "history": return await cmdHistory(rest);
       case "brief": return await cmdBrief(rest);
       case "repair": return await cmdRepair(rest);
+      case "daemon": return await cmdDaemon(rest);
+      case "run": return await cmdRunDue();
       case "state": return cmdState();
       default: err(`unknown command "${cmd}"`); log(HELP); process.exit(1);
     }
