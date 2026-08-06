@@ -36,7 +36,7 @@ Usage:
   sentinel diff <name>             Show last diff without updating baseline
   sentinel status                  Library health: commands, failures, repairs
   sentinel history <name>          Show recent run history
-  sentinel brief <name>            Generate a plain-language signal brief
+  sentinel brief <name> [--last]   Generate a brief, or show the last persisted one
   sentinel repair <name>           Diagnose a broken command + emit repair protocol
   sentinel daemon [--force]       Run continuous watch loop (scheduler)
   sentinel run                    Force-run all due targets once
@@ -304,10 +304,24 @@ async function cmdHistory(args) {
 }
 
 async function cmdBrief(args) {
-  const name = args[0];
-  if (!name) return err("usage: sentinel brief <name>");
+  const showLast = args.includes("--last");
+  const name = args.find((a) => !a.startsWith("--"));
+  if (!name) return err("usage: sentinel brief <name> [--last]");
   const target = getTarget(name);
   if (!target) return err(`unknown target "${name}"`);
+
+  if (showLast) {
+    const { readFileSync, existsSync } = await import("node:fs");
+    const path = await import("node:path");
+    const { targetStateDir } = await import("../src/config.js");
+    const briefPath = path.join(targetStateDir(name), "brief.md");
+    if (!existsSync(briefPath)) {
+      log(`no persisted brief for "${name}" — run sentinel watch ${name} first`);
+      return;
+    }
+    log("\n" + readFileSync(briefPath, "utf8") + "\n");
+    return;
+  }
 
   const history = readHistory(name, { limit: 20 });
   const latest = history[history.length - 1];
