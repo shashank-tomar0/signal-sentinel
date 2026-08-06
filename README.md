@@ -66,6 +66,12 @@ Editable whiteboard diagrams (handwritten Virgil font) — open in [excalidraw.c
 | [demo-flow.excalidraw](demo-flow.excalidraw) | The 5-stage live demo arc: Library → Reuse → Watch & Signals → Intelligence → Self-heal, with every command and what happens under the hood |
 | [commands-reference.excalidraw](commands-reference.excalidraw) | Full command reference grouped into Setup & Targets / Run & Watch / Intelligence / Health / Automation, plus an "under the hood" legend |
 
+### Rendered previews
+
+![Demo flow](demo-flow.png)
+
+![Commands reference](commands-reference.png)
+
 ---
 
 ## Quick start
