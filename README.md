@@ -64,7 +64,7 @@ flowchart LR
 
 <img src="demo-flow.png" alt="Demo flow" width="700"/>
 
-<img src="commands-reference.png" alt="User flow" width="700"/>
+<img src="commands-reference.png" alt="User flow" width="700" height="400"/>
 
 *Both diagrams are editable Excalidraw sources (Virgil handwritten font) — open in [excalidraw.com](https://excalidraw.com) to edit.*
 
