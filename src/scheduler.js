@@ -81,7 +81,7 @@ async function tick(target) {
     const { targetStateDir } = await import("./config.js");
     mkdirSync(targetStateDir(name), { recursive: true });
     writeFileSync(path.join(targetStateDir(name), "brief.md"), brief, "utf8");
-    return { name, ok: true, healthy: true, changed: true, severity: signal.severity, brief: brief.slice(0, 80) };
+    return { name, ok: true, healthy: true, changed: true, severity: signal.severity, summary: signal.reasons, brief };
   }
 
   return { name, ok: true, healthy: true, changed: false, severity: signal.severity };
@@ -104,8 +104,6 @@ export async function runDueTargets({ force = false } = {}) {
     if (!due) continue;
     const r = await tick(target);
     results.push(r);
-    // Brief output printed inline so daemon logs are human-readable.
-    if (r.brief) console.log(`\n[signal:${r.name}] ${r.severity}\n${r.brief}\n`);
   }
   return results;
 }
@@ -123,8 +121,9 @@ export async function daemon({ force = false, interval = SLEEP_MS } = {}) {
       const results = await runDueTargets({ force });
       for (const r of results) {
         if (!r.ok) console.log(`[fail] ${r.name}: ${r.error}`);
-        else if (r.changed) console.log(`[signal] ${r.name}: ${r.severity}`);
-        else if (r.baselineSeeded) console.log(`[seed] ${r.name}: baseline`);
+        else if (r.changed) console.log(`[signal] ${r.name}: ${r.severity}${r.summary?.length ? " — " + r.summary.join("; ") : ""}`);
+        else if (r.baselineSeeded) console.log(`[seed] ${r.name}: baseline established`);
+        else console.log(`[clean] ${r.name}`);
       }
     } catch (e) {
       console.error(`[daemon error] ${e.message}`);

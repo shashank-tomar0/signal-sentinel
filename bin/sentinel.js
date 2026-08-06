@@ -426,6 +426,12 @@ async function repairRep(name) {
 
 async function cmdRunDue() {
   const results = await runDueTargets({ force: true });
+  for (const r of results) {
+    if (!r.ok) log(`[fail] ${r.name}: ${r.error}`);
+    else if (r.changed) log(`[signal] ${r.name}: ${r.severity}${r.summary?.length ? " — " + r.summary.join("; ") : ""}`);
+    else if (r.baselineSeeded) log(`[seed] ${r.name}: baseline established`);
+    else log(`[clean] ${r.name}`);
+  }
   log(`ran ${results.length} targets, ${results.filter((r) => r.changed).length} signals`);
 }
 
