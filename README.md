@@ -222,6 +222,16 @@ sentinel demo          # runs the full 5-beat live arc on a real target
 
 ---
 
+## Full manual walkthrough
+
+```bash
+./demo.sh              # you drive — every command, real data, press Enter to advance
+```
+
+`demo.sh` runs the complete end-to-end flow you'd show a judge: init → register target → baseline → diff → status → history → AI brief → state → run → repair. Each step pauses so you can narrate.
+
+---
+
 ## License
 
 [MIT](LICENSE)
