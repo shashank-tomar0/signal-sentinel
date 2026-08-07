@@ -200,6 +200,19 @@ async function cmdDiff(name, { apply = false } = {}) {
   return { target, baseline, rows, result, signal, entry };
 }
 
+function renderDiff(verb, name, r) {
+  if (r.entry?.baselineSeeded) {
+    return [`${verb} ${name}: baseline established (${r.rows.length} rows). Run again to diff.`];
+  }
+  if (r.result?.changed) {
+    const lines = [`${verb} ${name}: ${r.signal.label}`];
+    for (const s of r.signal.reasons) lines.push(`  • ${s}`);
+    lines.push(`  severity: ${r.signal.severity}`);
+    return lines;
+  }
+  return [`${verb} ${name}: no material change`];
+}
+
 async function cmdWatch(args) {
   const name = args[0];
   if (name === "all") {
@@ -207,9 +220,14 @@ async function cmdWatch(args) {
     if (!targets.length) return err("no targets registered");
     let changed = 0;
     for (const t of targets) {
-      log(`\n— ${t.name} —`);
       const r = await cmdDiff(t.name, { apply: true });
-      if (r?.result?.changed) changed++;
+      log(`\n— ${t.name} —`);
+      if (r) {
+        for (const line of renderDiff("watch", t.name, r)) log(line);
+        if (r.result?.changed) changed++;
+      } else {
+        log(`  watch ${t.name}: FAILED`);
+      }
     }
     log(`\n${targets.length} targets watched, ${changed} with signals`);
     return;
@@ -217,17 +235,7 @@ async function cmdWatch(args) {
   if (!name) return err("usage: sentinel watch <name> | all");
   const r = await cmdDiff(name, { apply: true });
   if (!r) return;
-  if (r.entry?.baselineSeeded) {
-    log(`watched ${name}: baseline established (${r.rows.length} rows). Run again to diff.`);
-    return;
-  }
-  log(`watched ${name}: ${r.signal.label}`);
-  if (r.result.changed) {
-    for (const s of r.signal.reasons) log(`  • ${s}`);
-    log(`severity: ${r.signal.severity}`);
-  } else {
-    log("  no material change");
-  }
+  for (const line of renderDiff("watched", name, r)) log(line);
 }
 
 async function cmdStatus() {
@@ -463,7 +471,11 @@ async function main() {
         return err("usage: sentinel target list | add | rm");
       }
       case "watch": return await cmdWatch(rest);
-      case "diff": return await cmdDiff(rest[0]);
+      case "diff": {
+        const r = await cmdDiff(rest[0], { apply: false });
+        if (r) for (const line of renderDiff("diff", rest[0], r)) log(line);
+        return;
+      }
       case "status": return await cmdStatus();
       case "history": return await cmdHistory(rest);
       case "brief": return await cmdBrief(rest);
