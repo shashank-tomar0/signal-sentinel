@@ -49,10 +49,6 @@ async function runLLM(system, user, { timeout = 45_000 } = {}) {
   }
 }
 
-function timeout(n) {
-  return n;
-}
-
 /** Deterministic fallback brief — always available, never blocks. */
 export function fallbackBrief(targetName, signal) {
   const lines = [];

@@ -129,7 +129,6 @@ export async function repairCommand(site, cmd, args = [], { attempts = 2 } = {})
       error: check.error,
     });
     // 3) Refresh the sitemap/adapter memory then retry verification.
-    await run(["adapter", "eject", site], { timeout: 30_000 }).catch(() => {});
     await run(["adapter", "reset", site], { timeout: 30_000 }).catch(() => {});
     const retry = await checkCommand(site, cmd, args);
     if (retry.ok && retry.healthy) {

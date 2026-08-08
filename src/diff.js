@@ -102,38 +102,52 @@ export function classify(diffResult, baselineCount, currentCount) {
   const reasons = [];
   let severity = "none";
 
-  // Any modified rows that don't reach the material threshold are still a signal.
-  if (diffResult.modified.length && severity === "none") {
-    severity = "minor";
-  }
-
+  // New entries are the strongest signal on a stable list (new tier, new
+  // product, new listing). But on a churning ranked feed (HN, Product Hunt),
+  // new items entering the board is routine. Distinguish by net size change:
+  // a near-constant row count with both adds and removes = board churn (minor);
+  // a list that grew (new tier/product) or shrank = structural (critical/major).
   if (diffResult.added.length) {
-    // New entries are usually the strongest signal (new tier, new product, new listing).
-    severity = "critical";
-    reasons.push(`new entries appeared (${diffResult.added.map((a) => a.key).join(", ")})`);
+    const grewNet = diffResult.added.length > diffResult.removed.length;
+    const shrankNet = diffResult.added.length < diffResult.removed.length;
+    if (grewNet) {
+      severity = "critical";
+      reasons.push(`new entries appeared (${diffResult.added.map((a) => a.key).join(", ")})`);
+    } else if (shrankNet) {
+      // List shrank: added fewer than removed. Removed entries carry the signal.
+      reasons.push(`${diffResult.added.length} new entries (${diffResult.added.map((a) => a.key).join(", ")})`);
+    } else {
+      // Net-zero swap on a ranked feed: routine board churn, not a material signal.
+      reasons.push(`board churn — ${diffResult.added.length} new entries (${diffResult.added.map((a) => a.key).join(", ")})`);
+    }
   }
   if (diffResult.removed.length) {
-    severity = severity === "critical" ? "critical" : "major";
+    if (severity !== "critical") severity = "major";
     reasons.push(`entries disappeared (${diffResult.removed.map((r) => r.key).join(", ")})`);
   }
+  // Numeric magnitude drives severity for modified rows: <5% minor, 5-25% major,
+  // >=25% critical. This branch previously could not fire (dead code).
   for (const m of diffResult.modified) {
     for (const c of m.changes) {
       const isNum = typeof c.to === "number" || classifyField(c.field) === "number";
       reasons.push(`${m.key} ${c.field}: ${c.from} -> ${c.to}`);
-      // A numeric change >= 5% is a meaningful move.
       if (isNum && classifyField(c.field) === "number") {
         const from = num(c.from);
         const to = num(c.to);
         if (from !== null && to !== null && from !== 0) {
           const rel = Math.abs((to - from) / from);
-          if (rel >= 0.05) severity = severity === "none" ? "major" : severity;
-          if (rel >= 0.2) severity = "critical";
+          if (rel >= 0.25) severity = "critical";
+          else if (rel >= 0.05) severity = severity === "critical" ? "critical" : "major";
         }
       }
     }
   }
 
-  // A clean path: nothing added/removed/major, but rows moved slightly = minor.
+  // Floor: any modified rows that never reach the material threshold are still a signal.
+  if (diffResult.modified.length && severity === "none") {
+    severity = "minor";
+  }
+
   const label =
     severity === "critical"
       ? "critical change detected"

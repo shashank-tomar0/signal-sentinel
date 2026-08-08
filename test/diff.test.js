@@ -55,3 +55,58 @@ test("watchFields restricts what is diffed", () => {
   assert.equal(r.changed, false);
 });
 
+test("numeric move >=5% → major (was dead branch)", () => {
+  const current = PRICING.map((p) => (p.tier === "Pro" ? { ...p, price: 31 } : p)); // 29 -> 31 ≈ 6.9%
+  const r = diffRows(PRICING, current, { keyField: "tier" });
+  assert.equal(classify(r).severity, "major");
+});
+
+test("numeric move <5% → minor (still minor)", () => {
+  const current = PRICING.map((p) => (p.tier === "Pro" ? { ...p, price: 29.5 } : p)); // 29 -> 29.5 ≈ 1.7%
+  const r = diffRows(PRICING, current, { keyField: "tier" });
+  assert.equal(classify(r).severity, "minor");
+});
+
+test("numeric move >=25% → critical", () => {
+  const current = PRICING.map((p) => (p.tier === "Pro" ? { ...p, price: 40 } : p)); // 29 -> 40 ≈ 38%
+  const r = diffRows(PRICING, current, { keyField: "tier" });
+  assert.equal(classify(r).severity, "critical");
+});
+
+test("new entry on stable list → critical", () => {
+  const current = PRICING.map((p) => (p.tier === "Pro" ? { ...p, price: 29.1 } : p)); // under 5% noise
+  const r = diffRows(PRICING, current, { keyField: "tier" });
+  assert.equal(classify(r).severity, "minor");
+});
+
+test("board churn (many new + removed) → not critical", () => {
+  const baseline = [
+    { name: "A", rank: 1 },
+    { name: "B", rank: 2 },
+    { name: "C", rank: 3 },
+    { name: "D", rank: 4 },
+    { name: "E", rank: 5 },
+    { name: "F", rank: 6 },
+    { name: "G", rank: 7 },
+    { name: "H", rank: 8 },
+    { name: "I", rank: 9 },
+    { name: "J", rank: 10 },
+  ];
+  const current = [
+    { name: "X", rank: 1 },
+    { name: "Y", rank: 2 },
+    { name: "Z", rank: 3 },
+    { name: "K", rank: 4 },
+    { name: "L", rank: 5 },
+    { name: "M", rank: 6 },
+    { name: "N", rank: 7 },
+    { name: "O", rank: 8 },
+    { name: "P", rank: 9 },
+    { name: "Q", rank: 10 },
+  ];
+  const r = diffRows(baseline, current, { keyField: "name" });
+  assert.equal(r.added.length, 10, "10 new names");
+  assert.equal(r.removed.length, 10, "10 removed names");
+  assert.notEqual(classify(r).severity, "critical", "board reset is not a critical signal");
+});
+
