@@ -6,10 +6,13 @@
 // --- helpers ---
 
 function keyOf(row, keyField) {
-  if (keyField) return String(row[keyField]);
-  // Default: a stable identity from the first column that looks like an id/name.
+  // If the configured keyField exists in the row, use it.
+  if (keyField && row[keyField] !== undefined && row[keyField] !== null) return String(row[keyField]);
+  // Fallback: the configured key is missing from the data (e.g. keyField "name"
+  // but rows use "repo"). Auto-detect a STABLE identity — NOT "rank" (which
+  // changes on every run). Prefer: id, name, symbol, slug, repo, title.
   for (const k of Object.keys(row)) {
-    if (["id", "name", "symbol", "slug", "repo", "rank", "title"].includes(k)) return String(row[k]);
+    if (["id", "name", "symbol", "slug", "repo", "title"].includes(k) && row[k] !== undefined && row[k] !== null) return String(row[k]);
   }
   return JSON.stringify(row);
 }

@@ -163,7 +163,13 @@ async function cmdDiff(name, { apply = false } = {}) {
       error: res.error,
     });
     err(`command for "${name}" failed: ${res.error}`);
-    err("site changed? the repair loop should re-explore and fix the adapter.");
+    // A network/DNS failure is NOT a site-structure change — repairing the
+    // adapter won't help, so say so instead of sending the user down that path.
+    if (/ENOTFOUND|ENETUNREACH|ECONNREFUSED|ETIMEDOUT|fetch failed|getaddrinfo/i.test(res.error)) {
+      err("network/DNS failure — check connectivity, then re-run. This is not a site change.");
+    } else {
+      err("site changed? the repair loop should re-explore and fix the adapter.");
+    }
     return null;
   }
 

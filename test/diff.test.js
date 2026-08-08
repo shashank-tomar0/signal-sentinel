@@ -79,6 +79,23 @@ test("new entry on stable list → critical", () => {
   assert.equal(classify(r).severity, "minor");
 });
 
+test("wrong keyField (name) falls back to stable repo, no undefined collapse", () => {
+  const b = [
+    { rank: 1, repo: "a/x", forks: 5 },
+    { rank: 2, repo: "b/y", forks: 3 },
+  ];
+  const c = [
+    { rank: 1, repo: "a/x", forks: 6 },
+    { rank: 2, repo: "NEW/repo", forks: 3 },
+  ];
+  // keyField "name" does not exist in rows — must fall back to "repo", never "undefined"
+  const r = diffRows(b, c, { keyField: "name" });
+  assert.deepEqual(r.added.map((a) => a.key), ["NEW/repo"]);
+  assert.deepEqual(r.removed.map((x) => x.key), ["b/y"]);
+  assert.deepEqual(r.modified.map((m) => m.key), ["a/x"]);
+  assert.ok(!JSON.stringify(r.summary).includes("undefined"), "no undefined keys");
+});
+
 test("board churn (many new + removed) → not critical", () => {
   const baseline = [
     { name: "A", rank: 1 },
