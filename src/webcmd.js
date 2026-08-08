@@ -15,7 +15,7 @@ import { execFile } from "node:child_process";
 const WEBCMD_CMD = process.platform === "win32" ? "cmd" : "webcmd";
 const WEBCMD_ARGS_BASE = process.platform === "win32" ? ["/c", "webcmd.cmd"] : [];
 
-function run(args, { timeout = 120_000, maxBuffer = 32 * 1024 * 1024 } = {}) {
+export function run(args, { timeout = 120_000, maxBuffer = 32 * 1024 * 1024 } = {}) {
   const fullArgs = [...WEBCMD_ARGS_BASE, ...args];
   return new Promise((resolve) => {
     execFile(
@@ -58,6 +58,18 @@ export async function listCommands() {
   }
 }
 
+// A site adapter not being installed is a first-run reality: signal-sentinel is
+// a thin CLI over webcmd, and the per-site plugins ship from webcmd's repo, not
+// from this package. Rather than fail with a confusing error, auto-install the
+// missing plugin once, then retry. This is the same self-heal philosophy as the
+// adapter repair loop — the library keeps itself alive.
+const NOT_INSTALLED = /is not installed/i;
+
+async function ensurePlugin(site) {
+  const res = await run(["plugin", "install", `github:agentrhq/webcmd/${site}`], { timeout: 90_000 });
+  return res.ok;
+}
+
 /**
  * Run a single webcmd command and return parsed rows.
  * @param {string} site  e.g. "coingecko"
@@ -66,7 +78,15 @@ export async function listCommands() {
  * @param {string} format "json" (default) | "table" | "yaml" | "md" | "csv"
  */
 export async function runCommand(site, cmd, args = [], format = "json") {
-  const res = await run([site, cmd, ...args, "-f", format]);
+  let res = await run([site, cmd, ...args, "-f", format]);
+  if (!res.ok && NOT_INSTALLED.test(res.error)) {
+    // Auto-install the missing site plugin, then retry once.
+    if (await ensurePlugin(site)) {
+      res = await run([site, cmd, ...args, "-f", format]);
+    } else {
+      return { ok: false, error: `webcmd site "${site}" is not installed — run: webcmd plugin install github:agentrhq/webcmd/${site}` };
+    }
+  }
   if (!res.ok) return res;
   try {
     const data = extractJson(res.output);

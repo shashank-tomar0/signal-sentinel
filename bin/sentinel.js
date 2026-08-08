@@ -71,11 +71,22 @@ function parseArgs(args) {
 
 // --- commands ---
 
-function cmdInit() {
+async function cmdInit() {
   // loadConfig() already ensures a readable state; save to materialize defaults.
   loadConfig();
   log(`sentinel initialized at ${SENTINEL_DIR}`);
   log("add a target:  sentinel target add <name> --site <site> --command <cmd>");
+  // Preflight: webcmd must exist for any target to run. Catch a missing runtime
+  // here with a clear fix instead of a cryptic failure on the first watch.
+  const { run } = await import("../src/webcmd.js");
+  const res = await run(["list", "-f", "json"], { timeout: 30_000 });
+  if (!res.ok) {
+    err("webcmd is not available — Sentinel runs commands through webcmd.");
+    log("  install it first:  npm install -g @agentrhq/webcmd");
+    log("  then re-run:        sentinel init");
+  } else {
+    log("✓ webcmd runtime detected — ready.");
+  }
 }
 
 function cmdTargetList() {
