@@ -329,7 +329,11 @@ async function cmdHistory(args) {
   if (!entries.length) return log(`no history for "${name}"`);
   for (const e of entries.reverse()) {
     const state = e.healthy ? (e.changed ? "changed" : "clean") : "broken";
-    log(`${e.capturedAt.slice(0, 19).replace("T", " ")}  ${state.padEnd(8)} ${(e.severity || "—").padEnd(9)} ${(e.summary || []).slice(0, 2).join(" | ")}`);
+    // For broken runs, surface the error so history tells the whole story.
+    const detail = e.healthy
+      ? (e.summary || []).slice(0, 2).join(" | ")
+      : (e.error || "no error detail").slice(0, 80);
+    log(`${e.capturedAt.slice(0, 19).replace("T", " ")}  ${state.padEnd(8)} ${(e.severity || "—").padEnd(9)} ${detail}`);
   }
 }
 
