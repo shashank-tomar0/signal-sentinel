@@ -195,6 +195,12 @@ Both are editable — open the `.excalidraw` sources in [excalidraw.com](https:/
 |---|---|---|---|
 | `ph-today` | `producthunt today` | Today's launches, rank moves | "Annotate jumped to #1" |
 | `gh-trending` | `github-trending repos` | Trending repos by language | "cloudflare/computer forks +6" |
+
+> Register `gh-trending` with `--key repo` (the data has `repo`, not `name`):
+>
+> ```bash
+> sentinel target add gh-trending --site github-trending --command repos --key repo
+> ```
 | `crypto-top` | `coingecko top` | Top-10 coin prices | "BTC market cap -$3M (noise suppressed)" |
 | `webcmd-npm` | `npm package @agentrhq/webcmd` | webcmd's own npm version | "0.8.x → 0.9.0" |
 | `hn-webcmd` | `hackernews search webcmd` | HN buzz about webcmd | "New story +3 points" |
