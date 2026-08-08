@@ -260,17 +260,26 @@ async function cmdStatus() {
   if (!targets.length) return log("library empty — sentinel target add ...");
   log(`${"TARGET".padEnd(22)}${"STATE".padEnd(9)}LAST RUN`);
   for (const t of targets) {
-    const history = readHistory(t.name, { limit: 1 });
+    const history = readHistory(t.name, { limit: 20 });
     const last = history[history.length - 1];
-    const state = last
-      ? last.healthy
-        ? last.changed
-          ? "changed"
-          : "clean"
-        : "broken"
-      : "no runs";
-    const when = last ? last.capturedAt.slice(0, 16).replace("T", " ") : "—";
-    log(`${t.name.padEnd(22)}${state.padEnd(9)}${when}`);
+    if (!last) {
+      log(`${t.name.padEnd(22)}${"no runs".padEnd(9)}—`);
+      continue;
+    }
+    // "broken" means the LATEST run failed. An old broken entry that has since
+    // recovered with clean runs is not a current breakage.
+    if (!last.healthy) {
+      log(`${t.name.padEnd(22)}${"broken".padEnd(9)}${last.capturedAt.slice(0, 16).replace("T", " ")}`);
+      continue;
+    }
+    // Otherwise reflect the latest SIGNAL (changed): a trailing "clean" check
+    // right after a change should not hide that change from the dashboard.
+    const signal = [...history].reverse().find((e) => e.changed);
+    if (signal) {
+      log(`${t.name.padEnd(22)}${"changed".padEnd(9)}${signal.capturedAt.slice(0, 16).replace("T", " ")}`);
+    } else {
+      log(`${t.name.padEnd(22)}${"clean".padEnd(9)}${last.capturedAt.slice(0, 16).replace("T", " ")}`);
+    }
   }
 }
 
@@ -369,9 +378,12 @@ async function cmdBrief(args) {
     log(`no runs yet for "${name}" — run sentinel watch ${name} first`);
     return;
   }
-  // Reuse the most recent signal if any, else a "no material change" brief.
-  const signal = latest.changed
-    ? { label: "change detected", severity: latest.severity || "major", reasons: latest.summary || [] }
+  // Use the most recent MATERIAL signal (changed or broken), not the literal
+  // last entry — which is often a trailing "clean" row. Otherwise `brief`
+  // would say "no material change" right after `watch` showed a change.
+  const signalEntry = history.reverse().find((e) => !e.healthy || e.changed) || latest;
+  const signal = signalEntry.changed
+    ? { label: "change detected", severity: signalEntry.severity || "major", reasons: signalEntry.summary || [] }
     : { label: "no material change", severity: "none", reasons: [] };
 
   log(`generating brief for "${name}" (severity: ${signal.severity})…`);
@@ -380,7 +392,7 @@ async function cmdBrief(args) {
     site: target.site,
     command: target.command,
     signal,
-    capturedAt: latest.capturedAt,
+    capturedAt: signalEntry.capturedAt,
     history,
   });
   log("\n" + brief + "\n");
