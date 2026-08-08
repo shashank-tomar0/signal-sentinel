@@ -1,7 +1,7 @@
 {
   "name": "signal-sentinel",
   "version": "0.1.5",
-  "description": "Competitor-change intelligence on webcmd. Watches real sites, detects structural changes, writes plain-language briefs, and self-heals its command library.",
+  "description": "git for the web. Watch any website (competitors, pricing, marketplaces), diff structural changes, and get plain-language AI briefs. Self-healing command library on webcmd.",
   "type": "module",
   "bin": {
     "sentinel": "bin/sentinel.js"

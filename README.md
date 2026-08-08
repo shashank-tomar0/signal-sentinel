@@ -2,9 +2,9 @@
 
 # SignalSentinel
 
-**Competitor-change intelligence on webcmd**
+**git for the web — trace, diff, and get AI briefs on any website you care about**
 
-Your competitors changed their pricing, features, or positioning — and you found out three weeks late, by accident. SignalSentinel watches their real sites, tells you exactly **what** changed, **what it means**, and **what to do** — and repairs its own command library when those sites change.
+A competitor changed their pricing and you found out three weeks late, by accident. A vendor quietly removed a free tier. A launch you're tracking just shipped. SignalSentinel watches any site — a competitor, a pricing page, your own docs, a market — tells you exactly **what** changed, **what it means**, and **what to do**, in plain language. And it repairs its own command library when those sites change.
 
 [![npm](https://img.shields.io/npm/v/signal-sentinel)](https://www.npmjs.com/package/signal-sentinel)
 [![license](https://img.shields.io/npm/l/signal-sentinel)](https://github.com/shashank-tomar0/signal-sentinel)
@@ -15,7 +15,9 @@ Your competitors changed their pricing, features, or positioning — and you fou
 
 ## Why this exists
 
-Competitor intelligence is a real, painful problem that people pay to solve. Most "monitors" are just price tickers or noisy page diffs.
+`git` gave you version control for your own code. But there's no git for the **rest of the web** — the pricing pages, launch boards, and marketplaces you depend on change without telling you. SignalSentinel is that layer: **status, diff, log, and an AI commit-message — for any website.**
+
+Most "monitors" are just price tickers or noisy page diffs. SignalSentinel is the git mental model, applied to live sites:
 
 | What others do | What SignalSentinel does |
 |---|---|
@@ -23,6 +25,16 @@ Competitor intelligence is a real, painful problem that people pay to solve. Mos
 | One-shot scrape | **Explore once → compile to a fast command → reuse forever** (sub-second, ~90% fewer tokens) |
 | Breaks silently when a site changes | **Self-healing** — detects breakage, re-explores, rebuilds the adapter, goes green |
 | Raw data dump | **Plain-language brief** — "Annotate jumped to #1 on Product Hunt; likely a launch push. Monitor." |
+
+### The git mapping
+
+| git | SignalSentinel |
+|---|---|
+| `git status` | `sentinel status` — library health (clean / changed / broken) |
+| `git diff` | `sentinel diff` — what changed since baseline |
+| `git log` | `sentinel history` — full audit trail |
+| `git commit` | `sentinel watch` — capture a new baseline snapshot |
+| commit message | `sentinel brief` — the change, explained by AI |
 
 ---
 
@@ -195,18 +207,20 @@ Both are editable — open the `.excalidraw` sources in [excalidraw.com](https:/
 |---|---|---|---|
 | `ph-today` | `producthunt today` | Today's launches, rank moves | "Annotate jumped to #1" |
 | `gh-trending` | `github-trending repos` | Trending repos by language | "cloudflare/computer forks +6" |
-
-> Register `gh-trending` with `--key repo` (the data has `repo`, not `name`):
->
-> ```bash
-> sentinel target add gh-trending --site github-trending --command repos --key repo
-> ```
 | `crypto-top` | `coingecko top` | Top-10 coin prices | "BTC market cap -$3M (noise suppressed)" |
 | `webcmd-npm` | `npm package @agentrhq/webcmd` | webcmd's own npm version | "0.8.x → 0.9.0" |
 | `hn-webcmd` | `hackernews search webcmd` | HN buzz about webcmd | "New story +3 points" |
 | `pypi-requests` | `pypi package requests` | The `requests` PyPI package | "version bump" |
 
 These run **live** against real public APIs — no mocks.
+
+> Register `gh-trending` with `--key repo` (the data has `repo`, not `name`):
+>
+> ```bash
+> sentinel target add gh-trending --site github-trending --command repos --key repo
+> ```
+
+**Any website, not just competitors.** Watch a vendor's pricing page for a removed free tier, a job board for new postings, a marketplace for new listings, or your own docs for broken changes. Same `target add` — pick the site, the command, the fields.
 
 ---
 
